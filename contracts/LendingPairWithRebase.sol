@@ -34,12 +34,12 @@ import "./interfaces/IWETH.sol";
 // TODO: what to do when the entire pool is underwater?
 // TODO: check that all actions on a users funds can only be initiated by that user as msg.sender
 
-contract LendingPair is ERC20, Ownable, IMasterContract {
+contract LendingPairWithRebase is ERC20, Ownable, IMasterContract {
     using BoringMath for uint256;
 
     // MasterContract variables
     IBentoBox public immutable bentoBox;
-    LendingPair public immutable masterContract;
+    LendingPairWithRebase public immutable masterContract;
     address public feeTo;
     address public dev;
     mapping(ISwapper => bool) public swappers;
@@ -95,7 +95,7 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
 
     constructor(IBentoBox bentoBox_) public {
         bentoBox = bentoBox_;
-        masterContract = LendingPair(this);
+        masterContract = LendingPairWithRebase(this);
         dev = msg.sender;
         feeTo = msg.sender;
         emit LogDev(msg.sender);
@@ -513,15 +513,15 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
         swappers[swapper] = enable;
     }
 
-    function setFeeTo(address newFeeTo) public onlyOwner 
-    { 
-        feeTo = newFeeTo; 
+    function setFeeTo(address newFeeTo) public onlyOwner
+    {
+        feeTo = newFeeTo;
         emit LogFeeTo(newFeeTo);
     }
 
-    function setDev(address newDev) public 
-    { 
-        require(msg.sender == dev, 'LendingPair: Not dev'); 
+    function setDev(address newDev) public
+    {
+        require(msg.sender == dev, 'LendingPair: Not dev');
         dev = newDev;
         emit LogDev(newDev);
     }

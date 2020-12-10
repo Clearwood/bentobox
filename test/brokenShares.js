@@ -69,18 +69,16 @@ contract('BrokenShares', (accounts) => {
     await pair.borrow(sansBorrowFee(e18(55)), alice, { from: alice });
 
     // calculate borrow share to amount of alice
-    let aliceBorrowFraction = await pair.userBorrowFraction(alice);
-    console.log("aliceBorrowFraction before: ", aliceBorrowFraction.toString());
-    let aliceBorrowAmount = await bentoBox.toAmount(b.address, aliceBorrowFraction);
-    console.log("aliceBorrowAmount before: ", aliceBorrowAmount.toString());
+    let userBorrowAmount = await pair.userBorrowAmount(alice);
+    console.log("aliceBorrowAmount before: ", userBorrowAmount.toString());
 
     // make a gift - call sync
     await b.transfer(bentoBox.address, e18(300));
     await bentoBox.sync(b.address);
 
     // calculate borrow share to amount of alice again
-    aliceBorrowAmount = await bentoBox.toAmount(b.address, aliceBorrowFraction);
-    console.log("aliceBorrowAmount after: ", aliceBorrowAmount.toString());
+    userBorrowAmount = await pair.userBorrowAmount(alice);
+    console.log("aliceBorrowAmount after: ", userBorrowAmount.toString());
 
     // check that absulete amount did not change.
 
@@ -89,6 +87,6 @@ contract('BrokenShares', (accounts) => {
     await truffleAssert.reverts(pair.liquidate([alice], [e18(5)], bob, "0x0000000000000000000000000000000000000000", true, { from: bob }), 'LendingPair: all users are solvent');
   });
 
-  
+
 
 });

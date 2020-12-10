@@ -153,8 +153,8 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
             extraShare = totalBorrowAmount.mul(interestPerBlock).mul(blocks) / 1e18;
             feeShare = extraShare.mul(protocolFee) / 1e5; // % of interest paid goes to fee
             totalBorrowAmount = totalBorrowAmount.add(extraShare);
-            totalFeeShare = totalFeeShare.add(extraShare.sub(feeShare));
-            feesPendingShare = feesPendingShare.add(feeShare);
+            totalFeeShare = totalFeeShare.add(bentoBox.toShare(asset, extraShare.sub(feeShare)));
+            feesPendingShare = feesPendingShare.add(bentoBox.toShare(asset, feeShare));
         }
 
         uint256 totalAssetShare = getTotalAssetShare();
@@ -452,7 +452,7 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
 
             // The extra asset gets added to the pool
             uint256 feeShare = extraAssetShare.mul(protocolFee) / 1e5; // % of profit goes to fee
-            feesPendingShare = feesPendingShare.add(feeShare);
+            feesPendingShare = feesPendingShare.add(bentoBox.toShare(asset, feeShare));
             totalFeeShare = totalFeeShare.add(extraAssetShare.sub(feeShare));
             emit LogAddAsset(address(0), extraAssetShare, 0);
         } else if (address(swapper) == address(0)) {
@@ -507,15 +507,15 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
         swappers[swapper] = enable;
     }
 
-    function setFeeTo(address newFeeTo) public onlyOwner 
-    { 
-        feeTo = newFeeTo; 
+    function setFeeTo(address newFeeTo) public onlyOwner
+    {
+        feeTo = newFeeTo;
         emit LogFeeTo(newFeeTo);
     }
 
-    function setDev(address newDev) public 
-    { 
-        require(msg.sender == dev, 'LendingPair: Not dev'); 
+    function setDev(address newDev) public
+    {
+        require(msg.sender == dev, 'LendingPair: Not dev');
         dev = newDev;
         emit LogDev(newDev);
     }
