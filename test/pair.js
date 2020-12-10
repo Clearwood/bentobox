@@ -157,6 +157,7 @@ contract('LendingPair', (accounts) => {
     it('should take a deposit of assets from BentoBox', async () => {
       let share = await depositToBento(b, bentoBox, e18(10), bob);
       await pair.addAssetFromBento(share, { from: bob });
+      console.log("asset", (await b.balanceOf(bentoBox.address)).toString(), "bento", , (await bentoBox.shareOf(pair.address)).toString());
       assertBN(await pair.balanceOf(bob), e18(300));
     });
 
@@ -220,7 +221,7 @@ contract('LendingPair', (accounts) => {
 
     it('should have correct balances after supply of assets', async () => {
         assert.equal((await pair.totalSupply()).toString(), e18(300).toString());
-        assert.equal((await pair.balanceOf(bob)).toString(), e18(300).toString());
+        assertBN(await bentoBox.toAmount(b.address, await pair.balanceOf(bob)), e18(300));
     })
 
     it('should not allow borrowing without any collateral', async () => {
@@ -238,7 +239,7 @@ contract('LendingPair', (accounts) => {
     })
 
     it('should allow borrowing with collateral up to 75%', async () => {
-        await pair.borrow(sansBorrowFee(e18(75)), alice, { from: alice });
+        await pair.borrow(sansBorrowFee(await bentoBox.toAmount(b.address, e18(75))), alice, { from: alice });
     });
 
     it('should not allow any more borrowing', async () => {
@@ -292,8 +293,8 @@ contract('LendingPair', (accounts) => {
     });
 
     it('should allow full repay with funds', async () => {
-        let borrowShareLeft = await pair.userBorrowFraction(alice);
-        await pair.repay(borrowShareLeft, { from: alice });
+        let borrowAmountLeft = await pair.userBorrowAmount(alice);
+        await pair.repay(borrowAmountLeft, { from: alice });
     });
 
     it('should allow partial withdrawal of collateral', async () => {

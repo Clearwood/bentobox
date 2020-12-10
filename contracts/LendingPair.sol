@@ -58,7 +58,7 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
 
     // Total shares
     uint256 public totalCollateralShare;
-    uint256 public totalFeeShare; // Includes totalBorrowAmount (actual Share in BentoBox = totalAssetShare - totalBorrowAmount)
+    uint256 public totalDevFeeShare; // Includes totalBorrowAmount (actual Share in BentoBox = totalAssetShare - totalBorrowAmount)
     uint256 public totalBorrowAmount; // Total units of asset borrowed
 
     // Total fractions
@@ -135,7 +135,7 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
         uint256 bentoBalanceShare = bentoBox.shareOf(asset, address(this));
         uint256 borrowedTotalShare = bentoBox.toShare(asset, totalBorrowAmount);
 
-        return bentoBalanceShare + borrowedTotalShare + totalFeeShare;
+        return (bentoBalanceShare + borrowedTotalShare).sub(totalDevFeeShare);
     }
 
     // Accrues the interest on the borrowed tokens and handles the accumulation of fees
@@ -153,7 +153,7 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
             extraShare = totalBorrowAmount.mul(interestPerBlock).mul(blocks) / 1e18;
             feeShare = extraShare.mul(protocolFee) / 1e5; // % of interest paid goes to fee
             totalBorrowAmount = totalBorrowAmount.add(extraShare);
-            totalFeeShare = totalFeeShare.add(bentoBox.toShare(asset, extraShare.sub(feeShare)));
+            totalDevFeeShare = totalDevFeeShare.add(bentoBox.toShare(asset, feeShare));
             feesPendingShare = feesPendingShare.add(bentoBox.toShare(asset, feeShare));
         }
 
@@ -346,7 +346,6 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
         uint256 share = bentoBox.withdraw(asset, to, amount); // TODO: reentrancy issue?
         uint256 feeShare = share.mul(borrowOpeningFee) / 1e5; // A flat % fee is charged for any borrow
         _addBorrowShare(msg.sender, share.add(feeShare));
-        totalFeeShare = totalFeeShare.add(feeShare);
         require(isSolvent(msg.sender, false), 'LendingPair: user insolvent');
     }
 
@@ -355,7 +354,6 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
         bentoBox.transferShare(asset, to, share);
         uint256 feeShare = share.mul(borrowOpeningFee) / 1e5; // A flat % fee is charged for any borrow
         _addBorrowShare(msg.sender, share.add(feeShare));
-        totalFeeShare = totalFeeShare.add(feeShare);
         require(isSolvent(msg.sender, false), 'LendingPair: user insolvent');
     }
 
@@ -453,7 +451,7 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
             // The extra asset gets added to the pool
             uint256 feeShare = extraAssetShare.mul(protocolFee) / 1e5; // % of profit goes to fee
             feesPendingShare = feesPendingShare.add(bentoBox.toShare(asset, feeShare));
-            totalFeeShare = totalFeeShare.add(extraAssetShare.sub(feeShare));
+            totalDevFeeShare = totalDevFeeShare.add(bentoBox.toShare(asset, feeShare));
             emit LogAddAsset(address(0), extraAssetShare, 0);
         } else if (address(swapper) == address(0)) {
             // Open liquidation directly using the caller's funds, without swapping using token transfers
@@ -471,7 +469,6 @@ contract LendingPair is ERC20, Ownable, IMasterContract {
             uint256 returnedAssetShare = bentoBox.skim(asset);
             uint256 extraAssetShare = returnedAssetShare.sub(bentoBox.toShare(asset, allBorrowAmount));
 
-            totalFeeShare = totalFeeShare.add(extraAssetShare);
             emit LogAddAsset(address(0), extraAssetShare, 0);
         }
     }
